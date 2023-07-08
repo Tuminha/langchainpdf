@@ -49,6 +49,8 @@ splits = text_splitter.split_documents(docs)
 
 print(len(docs))
 
+
+
 # Specify your persist directory
 persist_directory = 'docs/chroma/'
 
@@ -62,6 +64,8 @@ vectordb = Chroma.from_documents(
     persist_directory=persist_directory,
 )
 
+
+
 # Print vectordb to verify
 print(vectordb)
 print("The size of the vectorstore is: ", vectordb._collection.count())
@@ -72,6 +76,7 @@ llm = ChatOpenAI(model_name="gpt-4", temperature=0)
 
 len(docs)
 
+print(len(docs))
 
 
 # Build prompt
@@ -114,7 +119,7 @@ result["result"]
 
 print(result["result"])
 
-question = "And who is the author that described the previous clinical benefits?"
+question = "What is the key about socket shield technique?"
 
 result = qa_chain({"query": question})
 

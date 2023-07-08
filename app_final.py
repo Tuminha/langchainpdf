@@ -46,6 +46,7 @@ QA_CHAIN_PROMPT = PromptTemplate.from_template(
     Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer. 
     {context}
     Question: {question}
+   
     Helpful Answer:"""
 )
 
@@ -82,6 +83,7 @@ def main():
 
         docs = text_splitter.split_documents(pages)
         splits = text_splitter.split_documents(docs)
+        
 
         # Create an instance of Chroma using the from_documents class method
         vectordb = Chroma.from_documents(
