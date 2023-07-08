@@ -14,6 +14,10 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 import streamlit as st
+from streamlit_chat import message
+from streamlit_extras.colored_header import colored_header
+from streamlit_extras.add_vertical_space import add_vertical_space
+from hugchat import hugchat
 
 
 
@@ -39,11 +43,13 @@ persist_directory = 'docs/chroma/'  # specify your persist directory
 
 QA_CHAIN_PROMPT = PromptTemplate.from_template(
     """
-    You are a very important professor at a dental school.
-    You are answering questions from your students about the course material.
+    You are a very knowledgeable AI with access to a large amount of information about dental science.
+    You are answering questions from users who range from dental students to people with no medical background.
     Use the following pieces of context to answer the question at the end. 
-    If you don't know the answer, just say that you don't know, don't try to make up an answer. 
-    Keep the answer as concise as possible. Always say "thanks for asking!" at the end of the answer. 
+    If you don't know the answer, just say that you don't know, and do not attempt to fabricate an answer. 
+    Keep your answers informative, but aim to explain concepts in a way that someone without a dental background could understand.
+    Try to anticipate possible follow-up questions and incorporate those answers into your response.
+    Always end your answer by saying "thanks for asking!" to maintain a friendly tone.
     {context}
     Question: {question}
     Helpful Answer:"""
@@ -101,7 +107,6 @@ def main():
     st.write("The size of the vectorstore is: ", vectordb._collection.count())
 
     uploaded_files = st.file_uploader("Upload PDF", type="pdf", accept_multiple_files=True)
-
     pdf_directory = "docs"
 
     if uploaded_files:
@@ -127,36 +132,46 @@ def main():
 
     st.subheader("Chat with the bot")
 
-    # Initialize the chat history in the session state
-    if 'chat_history' not in st.session_state:
-        st.session_state['chat_history'] = []
+   # Initialize the chat history in the session state
+    if 'past' not in st.session_state:
+        st.session_state['past'] = ['Hi!']
+    if 'generated' not in st.session_state:
+        st.session_state['generated'] = ["I'm HugChat, How may I help you?"]
 
-    # The user inputs their question here
-    user_input = st.empty()  # Placeholder for user input
+    input_container = st.container()
+    colored_header(label='', description='', color_name='blue-30')
+    response_container = st.container()
 
-    # Use a form for the user input and button
-    with st.form(key='user_form'):
+    def get_user_input():
         user_input = st.text_input("Type your question here...")
-        submit_button = st.form_submit_button(label='Send')
+        return user_input
+    
+    def generate_bot_response(prompt):
+        # Assuming you have a method to generate bot response.
+        response = qa_chain({"query": prompt})
+        return response["result"]
 
-    if submit_button:
-        if user_input:
-            # Add the user's question to the chat history
-            st.session_state['chat_history'].append(('You', user_input))
+    with input_container:
+        user_input = get_user_input()
+        submit_button = st.button("Submit question")  # Add a submit button
 
-            # The bot generates a response
-            with st.spinner('Searching for the answer...'):
-                result = qa_chain({"query": user_input})
+    with response_container:
+        if submit_button and user_input:  # Check if submit button is pressed and user input is not empty
+            with st.spinner('Searching for the answer...'):  # Add a spinner
+                # Generate bot response
+                response = generate_bot_response(user_input)
+                # Append user input and bot response to the session state
+                st.session_state.past.append(user_input)
+                st.session_state.generated.append(response)
+        
+        if st.session_state['generated']:
+            for i in range(len(st.session_state['generated'])):
+                message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
+                message(st.session_state['generated'][i], key=str(i))
 
-            # Add the bot's response to the chat history
-            st.session_state['chat_history'].append(('Bot', result["result"]))
-
-    # Display the chat history.
-    for role, message in st.session_state['chat_history']:
-        if role == 'You':
-            st.markdown(f"> :speech_balloon: **{role}**: {message}")
-        else:
-            st.markdown(f"> :robot_face: **{role}**: {message}")
+    if st.button('Clear chat history'):  # Add a clear chat history button
+        st.session_state.past = ['Hi!']
+        st.session_state.generated = ["I'm HugChat, How may I help you?"]
 
 # Run the app
 if __name__ == '__main__':
